@@ -25,6 +25,7 @@ import java.util.HashMap;
 import networkCore.packageObj.*;
 public class MainFrame extends JFrame {
 
+    
     private ChatRoom app;
     private int YES_NO_OPTION;
     private class MyClosableTabbedPane extends ClosableTabbedPane {

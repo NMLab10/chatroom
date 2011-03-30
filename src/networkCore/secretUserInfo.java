@@ -4,6 +4,8 @@ import userInfo.*;
 import java.net.*;
 import java.io.*;
 import java.util.*;
+import networkCore.*;
+import networkCore.packageObj.packageObj;
 
 public class secretUserInfo extends userInfo
 {
@@ -13,7 +15,25 @@ public class secretUserInfo extends userInfo
     private ObjectInputStream inStream;
     private ArrayDeque<String> roomlist;
     
+    public void send(packageObj obj)throws  IOException{
 
+            outStream.writeObject(obj);
+            switch(obj.getType()){
+                case LOGIN_SUCC:
+                    System.out.println("LS");
+                break;
+                case ERR_SAME_NAME:
+                    System.out.println("ERR SAME NAME");
+                break;
+                case USER_JOIN_ROOM:
+                    System.out.println("ujr");
+                break;
+                case ROOM_CLOSED:
+                    System.out.println("rc");
+                break;
+            }
+
+    }
     public Socket getInSocket(){return inSocket;}
     public Socket getOutSocket(){return outSocket;}
     public ObjectOutputStream getOutStream(){return outStream;}

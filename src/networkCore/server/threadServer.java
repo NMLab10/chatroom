@@ -73,27 +73,32 @@ public class threadServer extends Thread
 		recvStream = new ObjectInputStream(recvSocket.getInputStream());
 	
 
-		while(recieve((packageObj)recvStream.readUnshared())){}
+		while(recieve((packageObj)recvStream.readObject())){}
 
 	    }
-	    catch(Exception e){
-                
+	    catch(IOException e){
+                logout();
                 System.out.println("Connection closed by client : "+recvSocket.getInetAddress().getHostAddress());
                 System.err.println(e);
-                logout();
+                
+            }
+            catch(ClassNotFoundException e){
+                System.err.println(e);
             }
 
 
 	}
 
 	//implement recieving condition
-	private boolean recieve(packageObj obj)throws IOException{
+	private boolean recieve(packageObj obj){
 	    switch(obj.getType()){
 		case LOGIN:
+                    System.out.println("LG");
                     login(obj);
 		break;
 
                 case CREAT_ROOM:
+                    System.out.println("CR");
                     creatRoom(obj);
                 break;
 
@@ -125,7 +130,8 @@ public class threadServer extends Thread
             return true;
 	}
 
-        private boolean login(packageObj obj) throws IOException{
+        private boolean login(packageObj obj){
+            try{
             //Set up all connection information in userinfo
             user = new secretUserInfo();
             user.setUserInfo((userInfo)obj.getObj());
@@ -135,7 +141,7 @@ public class threadServer extends Thread
             user.setOutStream(sendStream);
             //Find weather name conflicts, if it happens than close connection.
             if(userList.containsKey(user.getID())){
-                sendStream.writeObject(new packageObj(packageType.ERR_SAME_NAME));
+                user.send(new packageObj(packageType.ERR_SAME_NAME));
                 recvStream.close();
                 sendStream.close();
                 recvSocket.close();
@@ -147,7 +153,7 @@ public class threadServer extends Thread
                     userList.put(user.getID(), user);
                 }
                 //Login success
-                sendStream.writeObject(new packageObj(packageType.LOGIN_SUCC));
+                user.send(new packageObj(packageType.LOGIN_SUCC));
                 System.out.println(user.getID() + " logins from "+user.getInSocket().getInetAddress().getHostAddress());
 
                 //send the login information to all users
@@ -161,6 +167,12 @@ public class threadServer extends Thread
 
                 return true;
             }
+            }catch(IOException e){
+                System.out.println("login err");
+                System.out.println(e);
+                return true;
+            }
+
         }//End of login function
 
         private void sendToOthers(packageObj obj){
@@ -170,7 +182,7 @@ public class threadServer extends Thread
                     try{
                         secretUserInfo tmp = (secretUserInfo)((Map.Entry)it.next()).getValue();
                         if(tmp.getID().equals(user.getID()))continue;
-                        tmp.getOutStream().writeObject(obj);
+                        tmp.send(obj);
 
                     }catch(IOException e){
                         System.err.println("Error happened when sendToOthers!");
@@ -190,7 +202,7 @@ public class threadServer extends Thread
                         if(tmp.getID().equals(user.getID()))continue;
                         packageObj packUserInfo = new packageObj(packageType.USER_INFO);
                         packUserInfo.setObj(tmp.getUserInfo());
-                        user.getOutStream().writeObject(packUserInfo);
+                        user.send(packUserInfo);
                     }catch(IOException e){
                         System.err.println("Error happened when sending all UserInfo!");
                         System.err.println(e);
@@ -207,7 +219,7 @@ public class threadServer extends Thread
                     try{
                         packageObj packRoomName = new packageObj(packageType.ROOM_INFO);
                         packRoomName.setObj((String)((Map.Entry)it.next()).getKey());
-                        user.getOutStream().writeObject(packRoomName);
+                        user.send(packRoomName);
                     }catch(IOException e){
                         System.err.println("Error happened when sending all room info");
                         System.err.println(e);
@@ -225,12 +237,20 @@ public class threadServer extends Thread
             user.getRoomList().add((String)obj.getObj());
             chatroomList.put((String)obj.getObj(), tmp);
             obj.setType(packageType.ROOM_INFO);
+            packageObj userjoin = new packageObj(packageType.USER_JOIN_ROOM);
+            String[] info = new String[2];
+            info[0] = user.getID();
+            info[1] = (String)obj.getObj();
+            userjoin.setObj(info);
             try {
+                
                 broadcast(obj);
+                user.send(userjoin);
             } catch (IOException ex) {
                 System.err.println("ERROR creatRoom()");
                 System.err.println(ex);
             }
+
         }
 
         //call when the user what to join a room
@@ -283,7 +303,7 @@ public class threadServer extends Thread
                             secretUserInfo tmp = (secretUserInfo)((Map.Entry)it.next()).getValue();
                             packageObj packmes = new packageObj(packageType.MESSAGE);
                             packmes.setObj(mes);
-                            tmp.getOutStream().writeObject(packmes);
+                            tmp.send(packmes);
                             
                         }catch(Exception e){
                             System.err.println("Error happened when sending message!");
@@ -325,7 +345,7 @@ public class threadServer extends Thread
             packageObj joinObj = new packageObj(packageType.USER_JOIN_SECRET_ROOM);
             joinObj.setObj(obj.getObj());
             try {
-                user.getOutStream().writeObject(joinObj);
+                user.send(joinObj);
             } catch (IOException ex) {
                 System.err.println("ERROR: creatSecretRoom\n"+ex);
             }
@@ -335,16 +355,18 @@ public class threadServer extends Thread
 
     private void broadcast(packageObj obj) throws IOException{
         Iterator it = userList.entrySet().iterator();
+        System.out.println(obj.getType());
         while(it.hasNext()){
             
-            ((secretUserInfo)((Map.Entry)it.next()).getValue()).getOutStream().writeObject(obj);
+            ((secretUserInfo)((Map.Entry)it.next()).getValue()).send(obj);
         }
     }
 
     private void broadcast(packageObj obj, ArrayDeque<secretUserInfo> roomUser)throws  IOException{
         Iterator it = roomUser.iterator();
+        System.out.println(obj.getType());
         while(it.hasNext()){
-            ((secretUserInfo)it.next()).getOutStream().writeObject(obj);
+            ((secretUserInfo)it.next()).send(obj);
         }
                 
     }
