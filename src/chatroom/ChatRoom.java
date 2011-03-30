@@ -34,7 +34,7 @@ public class ChatRoom extends SingleFrameApplication {
         client.setCallback(new callback());  // setup the client object
 
         goToFrame(FrameType.SIGNIN);
-        goToFrame(FrameType.MAIN);
+        //goToFrame(FrameType.MAIN);
     }
     void goToFrame(FrameType a){
         switch(a){

@@ -1024,10 +1024,10 @@ public class MainFrame extends JFrame {
     }
 
     public void secretInvitationInfo(String roomname){
-        String message = new String();
+        /*String message = new String();
         message.format("有人邀請您加入秘密聊天室 %s，請選擇是否加入：",roomname);
         int reply = JOptionPane.showConfirmDialog(this, message, "秘密邀請", YES_NO_OPTION);
-        if(reply == 0)
+        if(reply == 0)*/
     }
     /*
         *LOGIN,  // userInfo
